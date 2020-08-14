@@ -294,14 +294,20 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
     return SRSLTE_ERROR;
   }
   char* devname = DEVNAME_NONE;
+  int preferred_dev_id = 0;
+  bool use_preferred_dev_id = false;
   for (size_t i = 0; i < length; i++) {
     printf("Soapy has found device #%d: ", (int)i);
     for (size_t j = 0; j < soapy_args[i].size; j++) {
       printf("%s=%s, ", soapy_args[i].keys[j], soapy_args[i].vals[j]);
       if (!strcmp(soapy_args[i].keys[j], "name") && !strcmp(soapy_args[i].vals[j], "LimeSDR-USB")) {
         devname = DEVNAME_LIME;
+        preferred_dev_id = i;
+        use_preferred_dev_id = true;
       } else if (!strcmp(soapy_args[i].keys[j], "name") && !strcmp(soapy_args[i].vals[j], "LimeSDR Mini")) {
         devname = DEVNAME_LIME_MINI;
+        preferred_dev_id = i;
+        use_preferred_dev_id = true;
       }
     }
     printf("\n");
@@ -320,9 +326,16 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
         ERROR("Failed to set device. Using 0 as default.\n");
         dev_id = 0;
       }
+      use_preferred_dev_id = false;
+
       remove_substring(args, dev_arg);
       remove_substring(args, dev_str);
     }
+  }
+
+  // Use preferred device id if no device id was configured
+  if (use_preferred_dev_id) {
+    dev_id = preferred_dev_id;
   }
 
   // select last device if dev_id exceeds available devices
